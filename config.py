@@ -2,7 +2,11 @@
 RSS_URL = ""
 
 # В секундах
-POLL_INTERVAL = 15
+POLL_INTERVAL = 60
+
+BOT_TOKEN = ""
+
+TARGET_CHAT_ID = ""
 
 try:
     from config_local import *

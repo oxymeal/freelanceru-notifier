@@ -6,16 +6,15 @@ from typing import Iterator, List, Optional
 
 import config
 import feedparser
+from telegram import Bot, ParseMode
 
 Entry = namedtuple('Entry', ['title', 'pubdate', 'description', 'link'])
 
 
 def from_feed_entry(e: feedparser.FeedParserDict) -> Entry:
-    return Entry(
-        e.title,
-        datetime.fromtimestamp(time.mktime(e.published_parsed)),
-        e.description,
-        e.link, )
+    return Entry(e.title.strip(),
+                 datetime.fromtimestamp(time.mktime(e.published_parsed)),
+                 e.description.strip(), e.link)
 
 
 class FeedPoller:
@@ -37,12 +36,12 @@ class FeedPoller:
             [e.pubdate for e in self.entries], default=None)
         return new_entries
 
-    def poll(self, interval: int) -> Iterator[Entry]:
+    def poll_packs(self, interval: int) -> Iterator[List[Entry]]:
         while True:
             started = datetime.now()
             news = self.update()
-            for n in news:
-                yield n
+            if news:
+                yield news
 
             ended = datetime.now()
             delta = (ended - started).total_seconds()
@@ -52,9 +51,29 @@ class FeedPoller:
 
 def main():
     print(config.RSS_URL)
+    bot = Bot(config.BOT_TOKEN)
     poller = FeedPoller(config.RSS_URL)
-    for entry in poller.poll(config.POLL_INTERVAL):
-        print(entry)
+    for pack in poller.poll_packs(config.POLL_INTERVAL):
+        messages = []
+        for entry in pack:
+            template = "\n".join([
+                "<a href=\"{link}\"><b>{title}</b></a>",
+                "{description}",
+            ])
+
+            entry_msg = template.format(
+                link=entry.link,
+                title=entry.title,
+                description=entry.description).strip()
+
+            messages.append(entry_msg)
+
+        compiled_msg = "\n\n".join(messages)
+        bot.send_message(
+            config.TARGET_CHAT_ID,
+            compiled_msg,
+            parse_mode=ParseMode.HTML,
+            disable_web_page_preview=True)
 
 
 if __name__ == '__main__':
