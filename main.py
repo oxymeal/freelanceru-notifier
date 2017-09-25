@@ -6,7 +6,7 @@ from typing import Iterator, List, Optional
 
 import config
 import feedparser
-from telegram import Bot, ParseMode
+from telegram import Bot, ParseMode, TelegramError
 
 Entry = namedtuple('Entry', ['title', 'pubdate', 'description', 'link'])
 
@@ -49,31 +49,57 @@ class FeedPoller:
                 time.sleep(delta - interval)
 
 
-def main():
-    print(config.RSS_URL)
-    bot = Bot(config.BOT_TOKEN)
-    poller = FeedPoller(config.RSS_URL)
-    for pack in poller.poll_packs(config.POLL_INTERVAL):
+class TelegramSender:
+    def __init__(self, bot_token: str) -> None:
+        self.bot_token = bot_token
+        self.bot = Bot(self.bot_token)
+
+    def format_entry_msg(self, entry: Entry) -> str:
+        template = "\n".join([
+            "<a href=\"{link}\">{title}</a>",
+            "{description}",
+        ])
+
+        entry_msg = template.format(
+            link=entry.link, title=entry.title,
+            description=entry.description).strip()
+
+        return entry_msg
+
+    def format_pack_msg(self, pack: List[Entry]) -> str:
         messages = []
         for entry in pack:
-            template = "\n".join([
-                "<a href=\"{link}\"><b>{title}</b></a>",
-                "{description}",
-            ])
+            messages.append(self.format_entry_msg(entry))
 
-            entry_msg = template.format(
-                link=entry.link,
-                title=entry.title,
-                description=entry.description).strip()
+        pack_msg = "\n\n".join(messages)
+        return pack_msg
 
-            messages.append(entry_msg)
+    def format_error_msg(self, err: Exception, msg: str = None) -> str:
+        error_msg = "{}: {}".format(type(err).__qualname__, str(err))
+        if msg:
+            error_msg += "; Attempted to send:\n" + msg
+        return error_msg
 
-        compiled_msg = "\n\n".join(messages)
-        bot.send_message(
-            config.TARGET_CHAT_ID,
-            compiled_msg,
-            parse_mode=ParseMode.HTML,
-            disable_web_page_preview=True)
+    def send_pack(self, _poller: FeedPoller, pack: List[Entry]) -> None:
+        msg = self.format_pack_msg(pack)
+
+        try:
+            self.bot.send_message(
+                config.TARGET_CHAT_ID,
+                msg,
+                parse_mode=ParseMode.HTML,
+                disable_web_page_preview=True)
+        except TelegramError as error:
+            self.bot.send_message(config.TARGET_CHAT_ID,
+                                  self.format_error_msg(error, msg))
+
+
+def main():
+    print(config.RSS_URL)
+    sender = TelegramSender(config.BOT_TOKEN)
+    poller = FeedPoller(config.RSS_URL)
+    for pack in poller.poll_packs(config.POLL_INTERVAL):
+        sender.send_pack(poller, pack)
 
 
 if __name__ == '__main__':
