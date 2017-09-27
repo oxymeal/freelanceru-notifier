@@ -1,2 +1,4 @@
+colorama==0.3.9
 feedparser==5.2.1
 python-telegram-bot==8.0
+structlog==17.2.0
