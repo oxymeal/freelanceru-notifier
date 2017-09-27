@@ -105,8 +105,8 @@ class FeedPoller:
             delta = (ended - started).total_seconds()
             pp_logger.info("Poll iteration finished", elapsed=delta)
 
-            if delta > interval:
-                time.sleep(delta - interval)
+            if delta < interval:
+                time.sleep(interval - delta)
 
 
 class TelegramSender:
