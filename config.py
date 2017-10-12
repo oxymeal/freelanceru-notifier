@@ -13,6 +13,9 @@ TARGET_CHAT_ID = ""
 # `console` - pretty-print log entries for easy reading.
 LOGS_RENDERER = 'console'
 
+# Заблокированные слова.
+BLOCKED_KEYWORDS = []
+
 try:
     from config_local import *
 except ImportError:
