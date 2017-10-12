@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
+import re
 import time
 from collections import namedtuple
 from datetime import datetime
-from typing import Iterator, List, Optional, Dict, Any
+from typing import Any, Dict, Iterator, List, Optional
 
 import config
 import feedparser
@@ -37,13 +38,21 @@ logger = structlog.wrap_logger(
         get_log_renderer(config.LOGS_RENDERER),
     ])
 
+HTML_TAG_RE = re.compile(r"<[^>]+>")
+
+
+def strip_html(html: str) -> str:
+    return HTML_TAG_RE.sub("", html)
+
+
 Entry = namedtuple('Entry', ['title', 'pubdate', 'description', 'link'])
 
 
 def from_feed_entry(e: feedparser.FeedParserDict) -> Entry:
-    return Entry(e.title.strip(),
-                 datetime.fromtimestamp(time.mktime(e.published_parsed)),
-                 e.description.strip(), e.link)
+    return Entry(
+        strip_html(e.title.strip()),
+        datetime.fromtimestamp(time.mktime(e.published_parsed)),
+        strip_html(e.description.strip()), e.link)
 
 
 class FeedPoller:
