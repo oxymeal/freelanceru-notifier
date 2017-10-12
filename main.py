@@ -57,7 +57,7 @@ class FeedPoller:
         title = e.title.lower()
         description = e.description.lower()
         for word in self.blacklist:
-            if word in title and word in description:
+            if word in title or word in description:
                 return True
         return False
 
