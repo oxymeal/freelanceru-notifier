@@ -54,11 +54,10 @@ class FeedPoller:
         self.blacklist = blacklist
 
     def is_blacklist(self, e: Entry) -> bool:
-        for word in e.title.split():
-            if word in self.blacklist:
-                return True
-        for word in e.description.split():
-            if word in self.blacklist:
+        title = e.title.lower()
+        description = e.description.lower()
+        for word in self.blacklist:
+            if word in title and word in description:
                 return True
         return False
 
