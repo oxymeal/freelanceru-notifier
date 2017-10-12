@@ -88,7 +88,7 @@ class FeedPoller:
 
         new_entries = []
         for entry in self.entries:
-            if not self.last_pubdate or entry.pubdate < self.last_pubdate:
+            if not self.last_pubdate or entry.pubdate <= self.last_pubdate:
                 continue
 
             if self.is_blacklist(entry):
