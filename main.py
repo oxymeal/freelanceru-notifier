@@ -47,10 +47,20 @@ def from_feed_entry(e: feedparser.FeedParserDict) -> Entry:
 
 
 class FeedPoller:
-    def __init__(self, url: str) -> None:
+    def __init__(self, url: str, blacklist: List[str]) -> None:
         self.url = url
         self.entries = []  # type: List[Entry]
         self.last_pubdate = None  # type: Optional[datetime]
+        self.blacklist = blacklist
+
+    def is_blacklist(self, e: Entry) -> bool:
+        for word in e.title.split():
+            if word in self.blacklist:
+                return True
+        for word in e.description.split():
+            if word in self.blacklist:
+                return True
+        return False
 
     def update(self) -> List[Entry]:
         upd_logger = logger.bind(
@@ -70,8 +80,14 @@ class FeedPoller:
 
         new_entries = []
         for entry in self.entries:
-            if self.last_pubdate and entry.pubdate > self.last_pubdate:
-                new_entries.append(entry)
+            if not self.last_pubdate or entry.pubdate < self.last_pubdate:
+                continue
+
+            if self.is_blacklist(entry):
+                logger.info("Project was blocked", title=entry.title)
+                continue
+
+            new_entries.append(entry)
 
         upd_logger.info(
             "Retrieved entries", new=len(new_entries), total=len(self.entries))
@@ -162,7 +178,7 @@ class TelegramSender:
 
 def main():
     sender = TelegramSender(config.BOT_TOKEN)
-    poller = FeedPoller(config.RSS_URL)
+    poller = FeedPoller(url=config.RSS_URL, blacklist=config.BLOCKED_KEYWORDS)
     try:
         for pack in poller.poll_packs(config.POLL_INTERVAL):
             sender.send_pack(poller, pack)
