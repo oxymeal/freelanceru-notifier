@@ -134,9 +134,10 @@ class FeedPoller:
 
 
 class TelegramSender:
-    def __init__(self, bot_token: str) -> None:
+    def __init__(self, bot_token: str, limit_desc: int = None) -> None:
         self.bot_token = bot_token
         self.bot = Bot(self.bot_token)
+        self.limit_desc = limit_desc
 
     def format_entry_msg(self, entry: Entry) -> str:
         template = "\n".join([
@@ -144,9 +145,13 @@ class TelegramSender:
             "{description}",
         ])
 
+        description = entry.description
+        if self.limit_desc and len(description) > self.limit_desc:
+            description = description[:self.limit_desc] + "..."
+
         entry_msg = template.format(
             link=entry.link, title=entry.title,
-            description=entry.description).strip()
+            description=description).strip()
 
         return entry_msg
 
@@ -185,7 +190,8 @@ class TelegramSender:
 
 
 def main():
-    sender = TelegramSender(config.BOT_TOKEN)
+    sender = TelegramSender(
+        config.BOT_TOKEN, limit_desc=config.LIMIT_DESCRIPTION)
     poller = FeedPoller(url=config.RSS_URL, blacklist=config.BLOCKED_KEYWORDS)
     try:
         for pack in poller.poll_packs(config.POLL_INTERVAL):

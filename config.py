@@ -16,6 +16,9 @@ LOGS_RENDERER = 'console'
 # Заблокированные слова.
 BLOCKED_KEYWORDS = []
 
+# Ограничение на количество символов в описании сообщения.
+LIMIT_DESCRIPTION = None
+
 try:
     from config_local import *
 except ImportError:
