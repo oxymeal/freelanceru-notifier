@@ -134,7 +134,7 @@ class FeedPoller:
 
     def poll(self, interval: int) -> Iterator[Entry]:
         for pack in self.poll_packs(interval):
-            for entry in page:
+            for entry in pack:
                 yield entry
 
 
