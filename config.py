@@ -19,6 +19,10 @@ BLOCKED_KEYWORDS = []
 # Ограничение на количество символов в описании сообщения.
 LIMIT_DESCRIPTION = None
 
+# Отправлять все новые записи RSS в одном сообщении после каждого опроса (True)
+# или разделять их, т.е. отправлять каждую запись в отдельном сообщении (False)
+SEND_BY_PACKS = False
+
 try:
     from config_local import *
 except ImportError:

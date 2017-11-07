@@ -132,6 +132,11 @@ class FeedPoller:
             if delta < interval:
                 time.sleep(interval - delta)
 
+    def poll(self, interval: int) -> Iterator[Entry]:
+        for pack in self.poll_packs(interval):
+            for entry in page:
+                yield entry
+
 
 class TelegramSender:
     def __init__(self, bot_token: str, limit_desc: int = None) -> None:
@@ -188,14 +193,21 @@ class TelegramSender:
             self.bot.send_message(config.TARGET_CHAT_ID,
                                   self.format_error_msg(error, msg))
 
+    def send_single(self, poller: FeedPoller, entry: Entry) -> None:
+        self.send_pack(poller, [entry])
+
 
 def main():
     sender = TelegramSender(
         config.BOT_TOKEN, limit_desc=config.LIMIT_DESCRIPTION)
     poller = FeedPoller(url=config.RSS_URL, blacklist=config.BLOCKED_KEYWORDS)
     try:
-        for pack in poller.poll_packs(config.POLL_INTERVAL):
-            sender.send_pack(poller, pack)
+        if config.SEND_BY_PACKS:
+            for pack in poller.poll_packs(config.POLL_INTERVAL):
+                sender.send_pack(poller, pack)
+        else:
+            for entry in poller.poll(config.POLL_INTERVAL):
+                sender.send_single(poller, entry)
     except KeyboardInterrupt as e:
         logger.info("Polling was interrupted by user")
 
